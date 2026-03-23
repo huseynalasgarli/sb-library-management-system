@@ -65,7 +65,7 @@ public class GenreServiceImpl implements GenreService {
                 () -> new GenreException("Genre Not Found")
         );
         existingGenre.setActive(false);
-        genreRepository.delete(existingGenre);
+        genreRepository.save(existingGenre);
     }
 
     @Override
