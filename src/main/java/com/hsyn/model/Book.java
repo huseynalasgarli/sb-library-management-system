@@ -66,7 +66,7 @@ public class Book {
     private LocalDateTime updatedAt;
 
     @AssertTrue(message = "Available copies cannot exceed total copies.")
-    private boolean isAvailableCopiesValid(){
+    public boolean isAvailableCopiesValid(){
         if(totalCopies == null || availableCopies == null){
             return true;
         }

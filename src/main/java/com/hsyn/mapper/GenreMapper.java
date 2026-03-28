@@ -19,7 +19,7 @@ public class GenreMapper {
 
         if(savedGenre == null) return null;
 
-        GenreDTO dto = new  GenreDTO().builder()
+        GenreDTO dto = new GenreDTO().builder()
                 .id(savedGenre.getId())
                 .code(savedGenre.getCode())
                 .genreName(savedGenre.getGenreName())
