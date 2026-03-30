@@ -9,20 +9,37 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface BookRepository extends JpaRepository<Book,Long> {
+public interface BookRepository extends JpaRepository<Book, Long> {
 
     Optional<Book> findByIsbn(String isbn);
 
     boolean existsByIsbn(String isbn);
 
-    @Query("select b from Book b where" +
-            ":searchTerm is null OR " +
-            "lower(b.title) like lower(concat('%', :searchTerm,'%')) OR " +
-            "lower(b.author) like lower(concat('%', :searchTerm,'%')) OR " +
-            "lower(b.isbn) like lower(concat('%', :searchTerm,'%')) OR " +
-            "(:genreId is null or b.genre.id=:genreId) AND " +
-            "(:availableOnly  == false or b.availableCopies>0) AND " +
-            "b.active=true")
+    @Query(value = """
+            SELECT * FROM book
+            WHERE active = true
+            AND (
+                :searchTerm IS NULL OR
+                lower(title) LIKE lower('%' || CAST(:searchTerm AS text) || '%') OR
+                lower(author) LIKE lower('%' || CAST(:searchTerm AS text) || '%') OR
+                lower(isbn) LIKE lower('%' || CAST(:searchTerm AS text) || '%')
+            )
+            AND (:genreId IS NULL OR genre_id = :genreId)
+            AND (:availableOnly = false OR available_copies > 0)
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM book
+            WHERE active = true
+            AND (
+                :searchTerm IS NULL OR
+                lower(title) LIKE lower('%' || CAST(:searchTerm AS text) || '%') OR
+                lower(author) LIKE lower('%' || CAST(:searchTerm AS text) || '%') OR
+                lower(isbn) LIKE lower('%' || CAST(:searchTerm AS text) || '%')
+            )
+            AND (:genreId IS NULL OR genre_id = :genreId)
+            AND (:availableOnly = false OR available_copies > 0)
+            """,
+            nativeQuery = true)
     Page<Book> searchBooksWithFilter(
             @Param("searchTerm") String searchTerm,
             @Param("genreId") Long genreId,
@@ -32,7 +49,6 @@ public interface BookRepository extends JpaRepository<Book,Long> {
 
     long countByActiveTrue();
 
-    @Query("select count(b) from Book b  where b.availableCopies> 0 and b.active=true")
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.availableCopies > 0 AND b.active = true")
     long countAvailableBooks();
-
 }

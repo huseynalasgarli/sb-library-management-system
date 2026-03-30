@@ -13,10 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -92,6 +95,7 @@ public class BookServiceImpl implements BookService {
         bookRepository.delete(existingBook);
     }
 
+
     @Override
     public PageResponse<BookDTO> searchBooksWithFilters(BookSearchRequest searchRequest) {
         Pageable pageable = createPageable(searchRequest.getPage(),
@@ -104,25 +108,54 @@ public class BookServiceImpl implements BookService {
                 searchRequest.getAvailableOnly(),
                 pageable
         );
-        return null;
+        return convertToPageResponse(bookPage);
     }
 
     @Override
     public long getTotalActiveBooks() {
-        return 0;
+        return bookRepository.countByActiveTrue();
     }
 
     @Override
     public long getTotalAvailableBooks() {
-        return 0;
+        return bookRepository.countAvailableBooks();
     }
 
-    private Pageable createPageable(int page, int size,String sortBy,String sortOrder) {
-         size= Math.min(size,10);
-         size = Math.max(size,1);
+    private Pageable createPageable(int page, int size, String sortBy, String sortOrder) {
+        size = Math.min(size, 100);
+        size = Math.max(size, 1);
 
-         Sort sort = sortOrder.equalsIgnoreCase("ASC")
-                 ? Sort.by(sortBy).ascending():Sort.by(sortBy).descending();
-         return PageRequest.of(page, size, sort);
+        // Map Java field names to PostgreSQL column names (required for native query)
+        String column = switch (sortBy) {
+            case "createdAt"      -> "created_at";
+            case "updatedAt"      -> "updated_at";
+            case "availableCopies"-> "available_copies";
+            case "totalCopies"    -> "total_copies";
+            case "publishedDate"  -> "published_date";
+            case "coverImageUrl"  -> "cover_image_url";
+            default               -> sortBy;
+        };
+
+        Sort sort = sortOrder.equalsIgnoreCase("ASC")
+                ? Sort.by(column).ascending()
+                : Sort.by(column).descending();
+
+        return PageRequest.of(page, size, sort);
+    }
+
+    private PageResponse<BookDTO> convertToPageResponse(Page<Book> books){
+        List<BookDTO> bookDTOS = books.getContent()
+                .stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(bookDTOS,
+                books.getNumber(),
+                books.getTotalPages(),
+                books.getTotalElements(),
+                books.getTotalPages(),
+                books.isLast(),
+                books.isFirst(),
+                books.isEmpty());
     }
 }
