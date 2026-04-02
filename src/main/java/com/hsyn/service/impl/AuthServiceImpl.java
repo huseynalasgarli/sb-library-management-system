@@ -1,20 +1,28 @@
 package com.hsyn.service.impl;
 
+import com.hsyn.configurations.JwtProvider;
 import com.hsyn.domain.UserRole;
 import com.hsyn.exception.UserException;
+import com.hsyn.mapper.UserMapper;
+import com.hsyn.model.PasswordResetToken;
 import com.hsyn.model.User;
 import com.hsyn.payload.dto.UserDTO;
 import com.hsyn.payload.response.AuthResponse;
+import com.hsyn.repository.PasswordResetTokenRepository;
 import com.hsyn.repository.UserRepository;
 import com.hsyn.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +30,44 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
+    private final CustomUserServiceImpl customUserServiceImpl;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
     @Override
-    public AuthResponse login(String username, String password) {
-        return null;
+    public AuthResponse login(String username, String password) throws UserException {
+    Authentication authentication = authenticate(username,password);
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+//    Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+//  String role =authorities.iterator().next().getAuthority();
+    String token = jwtProvider.generateToken(authentication);
+
+    User user = userRepository.findByEmail(username);
+
+    user.setLastLogin(LocalDateTime.now());
+    userRepository.save(user);
+
+    AuthResponse authResponse = new AuthResponse();
+    authResponse.setTitle("Login successful");
+    authResponse.setMessage("Welcome back " + username);
+    authResponse.setJwt(token);
+    authResponse.setUser(UserMapper.toDTO(user));
+
+    return authResponse;
+    }
+
+    private Authentication authenticate(String username, String password) throws UserException {
+
+        UserDetails userDetails = customUserServiceImpl.loadUserByUsername(username);
+
+        if(userDetails == null) {
+            throw new UserException("user not found with username - " + username);
+        }
+        if(!passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new UserException("password not match");
+        }
+        return new UsernamePasswordAuthenticationToken(username,null,userDetails.getAuthorities());
     }
 
     @Override
@@ -47,11 +90,34 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 savedUser.getEmail(), savedUser.getPassword());
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        return null;
+
+        String jwt = jwtProvider.generateToken(authentication);
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setJwt(jwt);
+        authResponse.setTitle("Welcome " + createdUser.getFullName());
+        authResponse.setMessage("register successful");
+        authResponse.setUser(UserMapper.toDTO(savedUser));
+        return authResponse;
     }
 
     @Override
-    public void createPasswordResetToken(String email) {
+    public void createPasswordResetToken(String email) throws UserException {
+
+        User user = userRepository.findByEmail(email);
+
+        if (user == null) {
+            throw new UserException("user not found with the email");
+        }
+
+        String token = UUID.randomUUID().toString();
+
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(5))
+                .build();
+
+        passwordResetTokenRepository.save(resetToken);
 
     }
 
