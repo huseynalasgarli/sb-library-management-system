@@ -13,7 +13,7 @@ import java.util.*;
 @Service
 public class JwtProvider {
 
-    SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+    private final SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
 
     public String generateToken(Authentication authentication) {
         Collection<? extends GrantedAuthority> authorities = authentication
@@ -28,15 +28,14 @@ public class JwtProvider {
     }
 
     public String getEmailFromJwtToken(String token) {
-        token = token.substring(7);
+        if(token==null || !token.startsWith("Bearer ")) token = token.substring(7);
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
 
-        String email = String.valueOf(claims.get("email"));
-        return email;
+        return (String) claims.get("email");
     }
     private String populateAuthorities(Collection<? extends GrantedAuthority> authorities) {
         Set<String> auths = new HashSet<>();

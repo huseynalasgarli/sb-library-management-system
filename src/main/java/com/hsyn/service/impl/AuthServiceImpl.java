@@ -11,17 +11,17 @@ import com.hsyn.payload.response.AuthResponse;
 import com.hsyn.repository.PasswordResetTokenRepository;
 import com.hsyn.repository.UserRepository;
 import com.hsyn.service.AuthService;
+import com.hsyn.service.EmailService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.UUID;
 
 @Service
@@ -33,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final CustomUserServiceImpl customUserServiceImpl;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
 
     @Override
     public AuthResponse login(String username, String password) throws UserException {
@@ -100,9 +101,10 @@ public class AuthServiceImpl implements AuthService {
         return authResponse;
     }
 
-    @Override
+    @Transactional
     public void createPasswordResetToken(String email) throws UserException {
 
+        String frontendUrl = "http://localhost:5173";
         User user = userRepository.findByEmail(email);
 
         if (user == null) {
@@ -119,10 +121,31 @@ public class AuthServiceImpl implements AuthService {
 
         passwordResetTokenRepository.save(resetToken);
 
+        String resetLink = frontendUrl + token;
+        String subject = "Password reset request";
+        String body = "You requested to reset your password. Use this link (valid 5 minutes): " + resetLink;
+
+        //sent email
+
+        emailService.sendEmail(user.getEmail(), subject, body);
     }
 
-    @Override
-    public void resetPassword(String token, String password) {
+    @Transactional
+    public void resetPassword(String token, String password) throws Exception {
 
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(
+                        () -> new  Exception("token not valid")
+                );
+
+        if(resetToken.isExpired()){
+            passwordResetTokenRepository.delete(resetToken);
+            throw new Exception("token has expired");
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+        passwordResetTokenRepository.delete(resetToken);
     }
 }

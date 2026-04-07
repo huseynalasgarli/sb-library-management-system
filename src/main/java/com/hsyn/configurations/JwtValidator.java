@@ -22,20 +22,22 @@ import java.util.List;
 
 public class JwtValidator extends OncePerRequestFilter {
 
+    private final SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String jwt = request.getHeader(JwtConstant.JWT_HEADER);
-        if (jwt != null) {
+        if (jwt != null ) {
+            if (!jwt.startsWith("Bearer ")) {
+                throw new BadCredentialsException("Invalid token format");
+            }
             jwt = jwt.substring(7);
-
-
             try {
-                SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
                 Claims claims = Jwts.parser().verifyWith(key).build()
                         .parseSignedClaims(jwt).getPayload();
 
 
-                String email = String.valueOf(claims.get("email"));
+                String email = (String) claims.get("email");
                 String authorities = String.valueOf(claims.get("authorities"));
                 List<GrantedAuthority> authorityList = AuthorityUtils
                         .commaSeparatedStringToAuthorityList(authorities);
@@ -44,7 +46,7 @@ public class JwtValidator extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
-                throw new BadCredentialsException("Invalid JWT token");
+                throw new BadCredentialsException("Invalid JWT token: " + e.getMessage());
             }
         }
         filterChain.doFilter(request, response);
