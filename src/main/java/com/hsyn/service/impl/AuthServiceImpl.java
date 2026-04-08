@@ -75,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse signUp(UserDTO userDTO) throws UserException {
         User user = userRepository.findByEmail(userDTO.getEmail());
 
-        if (user == null) {
+        if (user != null) {
             throw new UserException ("Email ID already registered.");
         }
         User createdUser = new User();
