@@ -26,4 +26,4 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("today") LocalDate today
     );
 }
-}
+

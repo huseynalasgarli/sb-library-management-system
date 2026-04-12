@@ -2,6 +2,7 @@ package com.hsyn.service;
 
 
 
+import com.hsyn.exception.SubscriptionException;
 import com.hsyn.payload.dto.SubscriptionDTO;
 import org.springframework.data.domain.Pageable;
 
@@ -9,14 +10,16 @@ import java.util.List;
 
 public interface SubscriptionService {
 
-    SubscriptionDTO subscribe(SubscriptionDTO subscriptionDTO);
+    SubscriptionDTO subscribe(SubscriptionDTO subscriptionDTO) throws Exception;
 
-    SubscriptionDTO getUsersActiveSubscription(Long userId);
+    SubscriptionDTO getUsersActiveSubscription(Long userId) throws Exception;
 
-    SubscriptionDTO cancelSubscription(Long subscriptionId,String reason);
+    SubscriptionDTO cancelSubscription(Long subscriptionId,String reason) throws SubscriptionException;
 
-    SubscriptionDTO activeSubscription(Long subscriptionId,Long paymentId);
+    SubscriptionDTO activateSubscription(Long subscriptionId,Long paymentId) throws SubscriptionException;
 
-    List<SubscriptionDTO> getSubscriptions(Pageable pageable);
+    List<SubscriptionDTO> getAllSubscriptions(Pageable pageable);
+
+    void deactivateExpiredSubscriptions() throws Exception;
 
 }

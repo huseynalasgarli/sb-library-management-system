@@ -18,7 +18,7 @@ public class Subscription {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(nullable = false)
@@ -93,7 +93,7 @@ public class Subscription {
         }
     }
     public void initializeFromPlan(){
-        if (plan == null){
+        if (plan != null){
             this.planName = plan.getName();
             this.planCode =plan.getPlanCode();
             this.price = plan.getPrice();
