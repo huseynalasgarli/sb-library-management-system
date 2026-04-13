@@ -1,5 +1,6 @@
 package com.hsyn.service;
 
+import com.hsyn.model.SubscriptionPlan;
 import com.hsyn.payload.dto.SubscriptionPlanDTO;
 
 import java.util.List;
@@ -12,5 +13,7 @@ public interface SubscriptionPlanService {
     void deleteSubscriptionPlan(Long planId) throws Exception;
 
     List<SubscriptionPlanDTO> getAllSubscriptionPlan();
+
+    SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) throws Exception;
 
 }

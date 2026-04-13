@@ -43,7 +43,7 @@ public class SubscriptionPlanMapper {
         plan.setDescription(planDTO.getDescription());
         plan.setDurationDays(planDTO.getDurationDays());
         plan.setPrice(planDTO.getPrice());
-        plan.setCurrency(planDTO.getCurrency() != null ? planDTO.getCurrency() : "INR");
+        plan.setCurrency(planDTO.getCurrency() != null ? planDTO.getCurrency() : "AZN");
         plan.setMaxBooksAllowed(planDTO.getMaxBooksAllowed());
         plan.setMaxDaysPerBook(planDTO.getMaxDaysPerBook());
         plan.setDisplayOrder(planDTO.getDisplayOrder() !=null ? planDTO.getDisplayOrder() :  0);

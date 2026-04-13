@@ -5,6 +5,7 @@ import com.hsyn.model.SubscriptionPlan;
 import com.hsyn.model.User;
 import com.hsyn.payload.dto.SubscriptionPlanDTO;
 import com.hsyn.repository.SubscriptionPlanRepository;
+import com.hsyn.repository.SubscriptionRepository;
 import com.hsyn.service.SubscriptionPlanService;
 import com.hsyn.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,8 @@ public class SubscriptionPlanServiceImpl  implements SubscriptionPlanService {
     private  final SubscriptionPlanRepository subscriptionPlanRepository;
     private final SubscriptionPlanMapper subscriptionPlanMapper;
     private final UserService  userService;
+    private final SubscriptionRepository subscriptionRepository;
+
     @Override
     public SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO) throws Exception {
 
@@ -64,5 +67,14 @@ public class SubscriptionPlanServiceImpl  implements SubscriptionPlanService {
         return planList.stream().map(
                 subscriptionPlanMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) throws Exception {
+        SubscriptionPlan plan = subscriptionPlanRepository.findBySubscriptionPlanCode(subscriptionPlanCode);
+        if(plan == null){
+            throw new Exception("Plan not found");
+        }
+        return plan;
     }
 }
