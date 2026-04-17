@@ -3,8 +3,8 @@ package com.hsyn.controller;
 import com.hsyn.exception.SubscriptionException;
 import com.hsyn.payload.dto.SubscriptionDTO;
 import com.hsyn.payload.response.ApiResponse;
+import com.hsyn.payload.response.PaymentInitiateResponse;
 import com.hsyn.service.SubscriptionService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +24,7 @@ public class SubscriptionController {
     public ResponseEntity<?> subscribe(
             @RequestBody SubscriptionDTO subscription
     ) throws Exception {
-        SubscriptionDTO dto = subscriptionService.subscribe(subscription);
+        PaymentInitiateResponse dto = subscriptionService.subscribe(subscription);
         return ResponseEntity.ok(dto);
     }
 

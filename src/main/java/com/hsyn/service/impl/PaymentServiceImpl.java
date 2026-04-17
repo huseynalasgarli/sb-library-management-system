@@ -2,7 +2,9 @@ package com.hsyn.service.impl;
 
 import com.hsyn.domain.PaymentGateway;
 import com.hsyn.domain.PaymentStatus;
+import com.hsyn.event.publisher.PaymentEventPublisher;
 import com.hsyn.exception.PaymentException;
+import com.hsyn.mapper.PaymentMapper;
 import com.hsyn.model.Payment;
 import com.hsyn.model.Subscription;
 import com.hsyn.model.User;
@@ -16,6 +18,7 @@ import com.hsyn.repository.SubscriptionRepository;
 import com.hsyn.repository.UserRepository;
 import com.hsyn.service.PaymentService;
 import com.hsyn.service.gateway.StripeService;
+import com.stripe.model.checkout.Session;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +36,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final SubscriptionRepository subscriptionRepository;
     private final PaymentRepository paymentRepository;
     private final StripeService stripeService;
+    private final PaymentMapper paymentMapper;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     @Override
     public PaymentInitiateResponse initiatePayment(PaymentInitiateRequest req) throws PaymentException {
@@ -84,12 +89,38 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentDTO verifyPayment(PaymentVerifyRequest req) {
-        return null;
-    }
+    public PaymentDTO verifyPayment(PaymentVerifyRequest req) throws PaymentException {
 
+        // use the existing method to fetch session details
+        Session session = stripeService.fetchPaymentDetails(req.getStripeSessionId());
+
+        // get payment from DB using payment_id we stored in metadata
+        Long paymentId = Long.valueOf(session.getMetadata().get("payment_id"));
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        boolean isValid = stripeService.isValidPayment(req);
+
+        if (payment.getGateway() == PaymentGateway.STRIPE) {
+            if (isValid) {
+                payment.setGatewayOrderId(req.getStripeSessionId());
+            }
+        }
+
+        if (isValid) {
+            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+            payment.setCompletedAt(LocalDateTime.now());
+            payment = paymentRepository.save(payment);
+
+            // publish payment success event todo
+            paymentEventPublisher.publishPaymentSuccessEvent(payment);
+        }
+
+        return paymentMapper.toDTO(payment);
+    }
     @Override
     public Page<PaymentDTO> getAllPayments(Pageable pageable) {
-        return null;
+        Page<Payment> payments = paymentRepository.findAll(pageable);
+        return payments.map(paymentMapper::toDTO);
     }
 }

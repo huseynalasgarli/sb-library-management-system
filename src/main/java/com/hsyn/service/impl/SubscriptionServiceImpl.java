@@ -1,13 +1,18 @@
 package com.hsyn.service.impl;
 
+import com.hsyn.domain.PaymentGateway;
+import com.hsyn.domain.PaymentType;
 import com.hsyn.exception.SubscriptionException;
 import com.hsyn.mapper.SubscriptionMapper;
 import com.hsyn.model.Subscription;
 import com.hsyn.model.SubscriptionPlan;
 import com.hsyn.model.User;
 import com.hsyn.payload.dto.SubscriptionDTO;
+import com.hsyn.payload.request.PaymentInitiateRequest;
+import com.hsyn.payload.response.PaymentInitiateResponse;
 import com.hsyn.repository.SubscriptionPlanRepository;
 import com.hsyn.repository.SubscriptionRepository;
+import com.hsyn.service.PaymentService;
 import com.hsyn.service.SubscriptionService;
 import com.hsyn.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +22,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,9 +31,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionMapper subscriptionMapper;
     private final UserService userService;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final PaymentService paymentService;
 
     @Override
-    public SubscriptionDTO subscribe(SubscriptionDTO subscriptionDTO) throws Exception {
+    public PaymentInitiateResponse subscribe(SubscriptionDTO subscriptionDTO) throws Exception {
 
         User user = userService.getCurrentUser();
         SubscriptionPlan plan = subscriptionPlanRepository
@@ -41,7 +46,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.initializeFromPlan();
         subscription.setIsActive(false);
         Subscription savedSubscription = subscriptionRepository.save(subscription);
-        return subscriptionMapper.toDTO(savedSubscription);
+
+        PaymentInitiateRequest paymentInitiateRequest = PaymentInitiateRequest.builder()
+                .userId(user.getId())
+                .subscriptionId(subscription.getId())
+                .paymentType(PaymentType.MEMBERSHIP)
+                .paymentGateway(PaymentGateway.STRIPE)
+                .amount(subscription.getPrice())
+                .description("Library Subscription - " + plan.getName())
+                .build();
+        return paymentService.initiatePayment(paymentInitiateRequest);
     }
 
     @Override
@@ -93,7 +107,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public void deactivateExpiredSubscriptions() throws Exception {
+    public void deactivateExpiredSubscriptions(){
         List<Subscription> expiredSubscriptions = subscriptionRepository
                 .findExpiredActiveSubscriptions(LocalDate.now());
 

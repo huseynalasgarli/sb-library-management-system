@@ -1,12 +1,9 @@
 package com.hsyn.mapper;
 
-import com.hsyn.exception.SubscriptionException;
 import com.hsyn.model.Subscription;
 import com.hsyn.model.SubscriptionPlan;
 import com.hsyn.model.User;
 import com.hsyn.payload.dto.SubscriptionDTO;
-import com.hsyn.repository.SubscriptionPlanRepository;
-import com.hsyn.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +14,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SubscriptionMapper {
 
-    private final UserRepository userRepository;
-    private final SubscriptionPlanRepository planRepository;
 
     public SubscriptionDTO toDTO(Subscription subscription) {
         if(subscription == null) return null;
@@ -61,7 +56,7 @@ public class SubscriptionMapper {
 
     public Subscription toEntity(SubscriptionDTO dto,
                                  SubscriptionPlan plan,
-                                 User user) throws SubscriptionException {
+                                 User user){
         if(dto == null) return null;
 
         Subscription subscription = new Subscription();

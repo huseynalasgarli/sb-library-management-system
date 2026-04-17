@@ -5,6 +5,7 @@ import com.hsyn.exception.PaymentException;
 import com.hsyn.model.Payment;
 import com.hsyn.model.SubscriptionPlan;
 import com.hsyn.model.User;
+import com.hsyn.payload.request.PaymentVerifyRequest;
 import com.hsyn.payload.response.PaymentLinkResponse;
 import com.hsyn.service.SubscriptionPlanService;
 import com.stripe.Stripe;
@@ -93,28 +94,29 @@ public class StripeService {
         }
     }
 
-    public PaymentIntent fetchPaymentDetails(String paymentIntentId) throws PaymentException {
+    public Session fetchPaymentDetails(String sessionId) throws PaymentException {
         try {
-            return PaymentIntent.retrieve(paymentIntentId);
+            return Session.retrieve(sessionId);
         } catch (StripeException e) {
-            log.error("Failed to fetch payment details for {}: {}", paymentIntentId, e.getMessage(), e);
+            log.error("Failed to fetch payment details for {}: {}", sessionId, e.getMessage(), e);
             throw new PaymentException("Failed to fetch payment details: " + e.getMessage());
         }
     }
 
-    public boolean isValidPayment(String paymentIntentId) {
+    public boolean isValidPayment(PaymentVerifyRequest req) {
         try {
-            PaymentIntent paymentIntent = fetchPaymentDetails(paymentIntentId);
+            // reuse fetchPaymentDetails instead of calling Stripe again
+            Session session = fetchPaymentDetails(req.getStripeSessionId());
 
             // 1. Check status
-            if (!"succeeded".equalsIgnoreCase(paymentIntent.getStatus())) {
+            if (!"succeeded".equalsIgnoreCase(session.getStatus())) {
                 return false;
             }
 
             // 2. Extract metadata
-            Map<String, String> metadata = paymentIntent.getMetadata();
+            Map<String, String> metadata = session.getMetadata();
             String paymentType = metadata.get("type");
-            long amountInDollars = paymentIntent.getAmountReceived() / 100L;
+            long amountInDollars = session.getAmountTotal() / 100L;
 
             // 3. Check expected amount
             if (PaymentType.MEMBERSHIP.toString().equals(paymentType)) {
@@ -122,17 +124,12 @@ public class StripeService {
                 SubscriptionPlan subscriptionPlan = subscriptionPlanService
                         .getBySubscriptionPlanCode(planCode);
                 return amountInDollars == subscriptionPlan.getPrice();
-
-            } else if (PaymentType.FINE.toString().equals(paymentType)) {
-//                Long fineId = Long.valueOf(metadata.get("fine_id"));
-//                Fine fine = fineRepository.findById(fineId)
-//                        .orElseThrow(() -> new FineException("Fine not found"));
-//                return fine.getAmount() == amountInDollars;
-                return true;
             }
 
             return false;
 
+        } catch (PaymentException e) {
+            throw new RuntimeException("Payment verification failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

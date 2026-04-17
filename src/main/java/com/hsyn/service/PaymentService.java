@@ -13,7 +13,7 @@ public interface PaymentService {
 
     PaymentInitiateResponse initiatePayment(PaymentInitiateRequest req) throws PaymentException;
 
-    PaymentDTO verifyPayment(PaymentVerifyRequest req);
+    PaymentDTO verifyPayment(PaymentVerifyRequest req) throws PaymentException;
 
     Page<PaymentDTO> getAllPayments(Pageable pageable);
 }
