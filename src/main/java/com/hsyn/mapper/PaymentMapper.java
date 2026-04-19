@@ -40,7 +40,6 @@ public class PaymentMapper {
         dto.setTransactionId(payment.getTransactionId());
         dto.setGatewayPaymentId(payment.getGatewayPaymentId());
         dto.setGatewayOrderId(payment.getGatewayOrderId());
-        dto.setGatewaySignature(payment.getGatewaySignature());
         dto.setDescription(payment.getDescription());
         dto.setFailureReason(payment.getFailureReason());
         dto.setInitiatedAt(payment.getInitiatedAt());

@@ -28,8 +28,10 @@ public class Payment {
     @ManyToOne
     private Subscription subscription;
 
+    @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
 
+    @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
     @Enumerated(EnumType.STRING)
@@ -43,7 +45,7 @@ public class Payment {
 
     private String gatewayOrderId;
 
-    private String gatewaySignature;
+    private String stripeSessionId;
 
     private String description;
     private String failureReason;

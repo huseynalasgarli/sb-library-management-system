@@ -47,8 +47,6 @@ public class PaymentDTO {
 
     private String gatewayOrderId;
 
-    private String gatewaySignature;
-
     private String description;
 
     private String failureReason;
