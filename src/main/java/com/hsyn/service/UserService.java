@@ -10,5 +10,6 @@ public interface UserService {
 
     public User getCurrentUser();
     public List<UserDTO> getAllUsers();
+    User findById(Long id) throws Exception;
 
 }

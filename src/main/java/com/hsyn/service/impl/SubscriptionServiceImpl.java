@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,7 +62,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         User user = userService.getCurrentUser();
 
         Subscription subscription = subscriptionRepository
-                .findActiveSubscriptionByUserId(user.getId(), LocalDate.now())
+                .findActiveSubscriptionByUserId(user.getId(), LocalDateTime.now())
                 .orElseThrow(() -> new Exception("No active subscription found!"));
         return subscriptionMapper.toDTO(subscription);
     }
@@ -109,7 +108,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public void deactivateExpiredSubscriptions(){
         List<Subscription> expiredSubscriptions = subscriptionRepository
-                .findExpiredActiveSubscriptions(LocalDate.now());
+                .findExpiredActiveSubscriptions(LocalDateTime.now());
 
         for (Subscription subscription : expiredSubscriptions) {
             subscription.setIsActive(false);
