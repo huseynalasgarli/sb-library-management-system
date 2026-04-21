@@ -1,9 +1,15 @@
 package com.hsyn.payload.request;
 
 import com.hsyn.domain.BookLoanStatus;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class BookLoanSearchRequest {
 
     private Long userId;

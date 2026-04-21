@@ -27,6 +27,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -181,12 +183,6 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status, int page, int size) {
-        return null;
-    }
-
-    @Override
-    public PageResponse<BookLoanDTO> getBookLoans(BookLoanSearchRequest request) {
-
         User currentUser = userService.getCurrentUser();
         Page<BookLoan> bookLoanPage;
         if (status!=null) {
@@ -195,13 +191,92 @@ public class BookLoanServiceImpl implements BookLoanService {
                     status,currentUser,pageable);
         }
         else {
-
+            // return all history (both active and returned) sorted by creation date
+            Pageable pageable = PageRequest.of(page,size,Sort.by("createdAt").descending());
+            bookLoanPage = bookLoanRepository.findByUserId(currentUser.getId(),pageable);
         }
-        return null;
+
+        return coverToPageResponse(bookLoanPage);
+    }
+
+    @Override
+    public PageResponse<BookLoanDTO> getBookLoans(BookLoanSearchRequest request) {
+        // 1. build pageable with sorting, size, etc.
+        Pageable pageable = createPageable(
+                request.getPage(),
+                request.getSize(),
+                request.getSortBy(),
+                request.getSortDirection()
+        );
+
+        Page<BookLoan> bookLoanPage;
+
+        // 2. apply filtering logic dynamically
+        if (Boolean.TRUE.equals(request.getOverdueOnly())){
+            // fetch overdue loans
+            bookLoanPage = bookLoanRepository.findOverdueBookLoans(LocalDate.now(),pageable);
+        }
+        else if (request.getUserId()!=null){
+            // fetch loans by specific user
+            bookLoanPage = bookLoanRepository.findByUserId(request.getUserId(), pageable);
+        } else if (request.getBookId()!=null) {
+            // fetch loans by specific book
+            bookLoanPage = bookLoanRepository.findByBookId(request.getBookId(),pageable);
+        }
+        else if (request.getStatus()!=null){
+            // fetch loans by loan status
+            bookLoanPage = bookLoanRepository.findByStatus(request.getStatus(), pageable);
+        } else if (request.getStartDate()!=null && request.getEndDate()!=null) {
+            // fetch loans within date range
+            bookLoanPage = bookLoanRepository.findBookLoansByDateRange(
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    pageable
+            );
+        }
+        else {
+            // default: return all loans
+            bookLoanPage = bookLoanRepository.findAll(pageable);
+        }
+
+        // 3. convert entities to DTOs and wrap it in response object
+        return convertToPageResponse(bookLoanPage);
     }
 
     @Override
     public int updateOverdueBookLoan() {
         return 0;
     }
+
+    private Pageable createPageable(int page, int size , String sortBy,String sortDirection){
+        size = Math.min(size,100);
+        size = Math.max(size,1);
+
+        Sort sort = sortDirection.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        return PageRequest.of(page,size,sort);
+    }
+
+    private PageResponse<BookLoanDTO> convertToPageResponse(Page<BookLoan> bookLoanPage){
+        List<BookLoanDTO> bookLoanDTOS = bookLoanPage.getContent()
+                .stream()
+                .map(bookLoanMapper::toDTO)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                bookLoanDTOS,
+                bookLoanPage.getNumber(),
+                bookLoanPage.getSize(),
+                bookLoanPage.getTotalElements(),
+                bookLoanPage.getTotalPages(),
+                bookLoanPage.isLast(),
+                bookLoanPage.isFirst(),
+                bookLoanPage.isEmpty()
+        );
+    }
+
+
+
 }
