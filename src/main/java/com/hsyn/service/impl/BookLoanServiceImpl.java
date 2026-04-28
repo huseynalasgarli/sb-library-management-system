@@ -26,7 +26,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -196,7 +198,7 @@ public class BookLoanServiceImpl implements BookLoanService {
             bookLoanPage = bookLoanRepository.findByUserId(currentUser.getId(),pageable);
         }
 
-        return coverToPageResponse(bookLoanPage);
+        return convertToPageResponse(bookLoanPage);
     }
 
     @Override
@@ -245,7 +247,29 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public int updateOverdueBookLoan() {
-        return 0;
+
+        Pageable pageable = PageRequest.of(0,1000); // Process in batch
+        Page<BookLoan> overduePage = bookLoanRepository
+                .findOverdueBookLoans(LocalDate.now(),pageable);
+
+        int updateCount = 0;
+        for (BookLoan bookLoan : overduePage.getContent()) {
+            if (bookLoan.getStatus() == BookLoanStatus.CHECKED_OUT) {
+                bookLoan.setStatus(BookLoanStatus.OVERDUE);
+                bookLoan.setIsOverdue(true);
+            }
+
+//            // Calculate overdue days
+            int overdueDays = calculateOverdueDate(bookLoan.getDueDate(),LocalDate.now());
+
+            // Calculate fine
+//            BigDecimal fine = fineCalculationService.calculateOverdueFine(bookLoan);
+
+            bookLoanRepository.save(bookLoan);
+            updateCount++;
+        }
+
+        return updateCount;
     }
 
     private Pageable createPageable(int page, int size , String sortBy,String sortDirection){
@@ -275,6 +299,14 @@ public class BookLoanServiceImpl implements BookLoanService {
                 bookLoanPage.isFirst(),
                 bookLoanPage.isEmpty()
         );
+    }
+
+    public int calculateOverdueDate(LocalDate dueDate, LocalDate today){
+        if (dueDate.isAfter(today) || dueDate.isEqual(today)) {
+            return 0;
+        }
+
+        return (int) ChronoUnit.DAYS.between(dueDate, today);
     }
 
 
