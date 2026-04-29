@@ -20,7 +20,7 @@ public interface BookLoanService {
     BookLoanDTO renewCheckout(RenewalRequest renewalRequest) throws Exception;
 
     PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status,
-                                             int page, int size);
+                                             int page, int size) throws Exception;
 
     PageResponse<BookLoanDTO> getBookLoans(BookLoanSearchRequest request);
 

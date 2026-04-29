@@ -184,18 +184,19 @@ public class BookLoanServiceImpl implements BookLoanService {
     }
 
     @Override
-    public PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status, int page, int size) {
+    public PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status, int page, int size) throws Exception {
         User currentUser = userService.getCurrentUser();
-        Page<BookLoan> bookLoanPage;
-        if (status!=null) {
-            Pageable pageable = PageRequest.of(page,size, Sort.by("dueDate").ascending());
-            bookLoanPage=bookLoanRepository.findByStatusAndUser(
-                    status,currentUser,pageable);
-        }
-        else {
-            // return all history (both active and returned) sorted by creation date
-            Pageable pageable = PageRequest.of(page,size,Sort.by("createdAt").descending());
-            bookLoanPage = bookLoanRepository.findByUserId(currentUser.getId(),pageable);
+
+        Pageable pageable = status != null
+                ? PageRequest.of(page, size, Sort.by("dueDate").ascending())
+                : PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<BookLoan> bookLoanPage = status != null
+                ? bookLoanRepository.findByStatusAndUser(status, currentUser, pageable)
+                : bookLoanRepository.findByUserId(currentUser.getId(), pageable);
+
+        if (bookLoanPage.isEmpty()) {
+            throw new Exception("No book loans found");
         }
 
         return convertToPageResponse(bookLoanPage);
