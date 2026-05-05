@@ -1,6 +1,7 @@
 package com.hsyn.payload.dto;
 
 
+import com.hsyn.domain.FineStatus;
 import com.hsyn.domain.FineType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -9,11 +10,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FIneDTO {
+public class FineDTO {
 
     private Long id;
 
@@ -37,4 +40,36 @@ public class FIneDTO {
     @NotNull(message = "Fine amount is mandatory")
     @PositiveOrZero(message = "Fine amount cannot be negative")
     private Long amount;
+
+    @PositiveOrZero(message = "Amount paid cannot be negative")
+    private Long amountPaid;
+
+    private Long amountOutStanding;
+
+    @NotNull(message = "Fine status is mandatory")
+    private FineStatus status;
+
+    private String reason;
+
+    private String notes;
+
+    private Long waivedByUserId;
+
+    private String waivedByUserName;
+
+    private LocalDateTime waivedAt;
+
+    private String waivedReason;
+
+    private LocalDateTime paidAt;
+
+    private Long processedByUserId;
+
+    private String processedByUserName;
+
+    private String transactionId;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }
