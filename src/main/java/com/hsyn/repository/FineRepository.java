@@ -3,6 +3,7 @@ package com.hsyn.repository;
 import com.hsyn.domain.FineStatus;
 import com.hsyn.domain.FineType;
 import com.hsyn.model.Fine;
+import com.hsyn.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,4 +29,8 @@ public interface FineRepository extends JpaRepository<Fine,Long> {
     );
 
     List<Fine> findByUserId(Long userId);
+
+    List<Fine> findByUserIdAndType(Long userId, FineType type);
+
+    Long user(User user);
 }

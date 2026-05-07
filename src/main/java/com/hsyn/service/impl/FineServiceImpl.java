@@ -1,4 +1,4 @@
-package com.hsyn.service;
+package com.hsyn.service.impl;
 
 import com.hsyn.domain.FineStatus;
 import com.hsyn.domain.FineType;
@@ -16,7 +16,14 @@ import com.hsyn.payload.response.PageResponse;
 import com.hsyn.payload.response.PaymentInitiateResponse;
 import com.hsyn.repository.BookLoanRepository;
 import com.hsyn.repository.FineRepository;
+import com.hsyn.service.FineService;
+import com.hsyn.service.PaymentService;
+import com.hsyn.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,14 +32,13 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class FineServiceImpl implements FineService{
+public class FineServiceImpl implements FineService {
 
     private final BookLoanRepository bookLoanRepository;
     private final FineRepository fineRepository;
     private final FineMapper fineMapper;
     private final UserService userService;
     private final PaymentService paymentService;
-    private final WaiveFineRequest  waiveFineRequest;
 
     @Override
     public FineDTO createFine(CreateFineRequest createFineRequest) throws Exception {
@@ -105,7 +111,7 @@ public class FineServiceImpl implements FineService{
 
     @Override
     public FineDTO waiveFine(WaiveFineRequest req) throws Exception {
-        Fine fine = fineRepository.findById(waiveFineRequest.getFineId())
+        Fine fine = fineRepository.findById(req.getFineId())
                 .orElseThrow(() -> new Exception("Fine not found"));
 
         if (fine.getStatus() == FineStatus.WAIVED) {
@@ -117,7 +123,7 @@ public class FineServiceImpl implements FineService{
         }
 
         User currentAdmin = userService.getCurrentUser();
-        fine.waive(currentAdmin,waiveFineRequest.getReason());
+        fine.waive(currentAdmin,req.getReason());
 
         Fine savedFine = fineRepository.save(fine);
 
@@ -127,20 +133,58 @@ public class FineServiceImpl implements FineService{
     @Override
     public List<FineDTO> getMyFines(FineStatus status, FineType type) {
         User currentUser = userService.getCurrentUser();
-        List<Fine> fine;
+        List<Fine> fines;
 
         if (status != null && type != null) {
-
-            fine = fineRepository.findByUserId(currentUser.getId()).stream()
+            fines = fineRepository.findByUserId(currentUser.getId()).stream()
                     .filter(f-> f.getStatus() == status && f.getType() == type)
-                    .toList();
+                    .collect(Collectors.toList());
+        } else if (status != null){
+            fines = fineRepository.findByUserId(currentUser.getId()).stream()
+                    .filter(f  -> f.getStatus() == status && f.getType() == type)
+                    .collect(Collectors.toList());
+        } else if (type != null){
+            fines = fineRepository.findByUserIdAndType(currentUser.getId(),type);
+        } else {
+            fines = fineRepository.findByUserId(currentUser.getId());
         }
-        return List.of();
+        return fines.stream().map(fineMapper::toDTO).collect(Collectors.toList());
     }
 
 
     @Override
     public PageResponse<FineDTO> getAllFines(FineStatus status, FineType type, Long userId, int page, int size) {
-        return null;
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending());
+
+        Page<Fine> finePage = fineRepository.findAllWithFilters(
+                userId,
+                status,
+                type,
+                pageable
+        );
+
+        return convertToPageResponse(finePage);
+    }
+
+    private PageResponse<FineDTO> convertToPageResponse(Page<Fine> finesPage) {
+        List<FineDTO> dto = finesPage.getContent()
+                .stream()
+                .map(fineMapper::toDTO)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                dto,
+                finesPage.getNumber(),
+                finesPage.getSize(),
+                finesPage.getTotalElements(),
+                finesPage.getTotalPages(),
+                finesPage.isLast(),
+                finesPage.isFirst(),
+                finesPage.isEmpty()
+        );
     }
 }
