@@ -15,10 +15,12 @@ import java.time.LocalDateTime;
 public class ReservationDTO {
 
     private Long id;
+    private Long userId;
     private String userName;
     private String userEmail;
 
     private Long bookId;
+    private String bookTitle;
     private String bookIsbn;
     private String bookAuthor;
     private Boolean isBookAvailable;

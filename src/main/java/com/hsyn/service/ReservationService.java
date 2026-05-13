@@ -7,13 +7,13 @@ import com.hsyn.payload.response.PageResponse;
 
 public interface ReservationService {
 
-    ReservationDTO createReservation(ReservationRequest reservationRequest);
+    ReservationDTO createReservation(ReservationRequest reservationRequest) throws Exception;
 
     ReservationDTO createReservationForUser(ReservationRequest reservationRequest,
                                             Long userId) throws Exception;
 
-    ReservationDTO cancelReservation(Long reservationId);
-    ReservationDTO fulfillReservation(Long reservationId);
+    ReservationDTO cancelReservation(Long reservationId) throws Exception;
+    ReservationDTO fulfillReservation(Long reservationId) throws Exception;
 
     PageResponse<ReservationDTO> getMyReservations(ReservationSearchRequest searchRequest);
     PageResponse<ReservationDTO> searchReservations(ReservationSearchRequest searchRequest);
