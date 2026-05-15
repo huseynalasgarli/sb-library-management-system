@@ -52,6 +52,4 @@ public class BookReviewController {
                         bookId, page, size);
         return ResponseEntity.ok(reviews);
     }
-
-
 }
