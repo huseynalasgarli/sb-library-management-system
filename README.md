@@ -333,4 +333,4 @@ User
 
 ## 👤 Author
 
-**Huseyn** — [GitHub](https://github.com/hsyn)
+**huseynalasgarli** — [GitHub](https://github.com/huseynalasgarli)
